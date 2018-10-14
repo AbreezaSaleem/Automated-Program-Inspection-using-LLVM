@@ -1,0 +1,11 @@
+
+; Function Attrs: nounwind uwtable
+define i32 @_Z3muli(i32 %x) #3 {
+entry:
+  %x.addr = alloca i32, align 4
+  store i32 %x, i32* %x.addr, align 4
+  %0 = load i32* %x.addr, align 4
+  %add = add nsw i32 %0, 6
+  ret i32 %add
+}
+
