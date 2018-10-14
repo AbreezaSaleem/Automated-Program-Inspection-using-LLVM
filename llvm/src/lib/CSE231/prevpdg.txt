@@ -1,0 +1,118 @@
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/ADT/Statistic.h"
+#include "llvm/Support/InstIterator.h"
+#include "llvm/Pass.h"
+#include "llvm/Support/raw_ostream.h"
+
+using namespace llvm;
+
+namespace 
+{
+	struct ProgramDependanceGraph : public ModulePass 
+	{
+		static char ID;
+		ProgramDependanceGraph() : ModulePass(ID) {}	
+
+		virtual bool runOnModule(Module &M)
+		{
+			errs()<< "digraph sum {\n";	 // need to change it to get the name of the module automatically
+			errs() << "\n";
+
+			for(Module::iterator MI = M.begin(), E = M.end(); MI != E; ++MI) // iterating over functions in a module
+			{
+				std::string current_function = MI->getName();
+
+				for (Function::iterator F = MI->begin(), E = MI->end(); F != E; ++F)    // iterating over BB in a function
+				{
+					for (BasicBlock::iterator I = F->begin(), E = F->end(); I != E; ++I) // iterating over instructions in the BB
+					{
+						std::string instruction_type = I->getOpcodeName();
+						std::string instruction_address;
+						llvm::raw_string_ostream(instruction_address) << I;
+						//errs() << instruction_address << "\n";
+						//errs() << instruction_type << "\n";
+						errs() << *I << "\n";
+						if(isa<CallInst>(I)) 
+						{
+							std::string calling_function = cast<CallInst>(I)->getCalledFunction()->getName();
+							//errs() << current_function << "\n";
+							//errs() << calling_function << "\n";
+
+							/*std::string mangledName;
+							raw_string_ostream mangledNameStream(mangledName);
+							Mangler::getNameWithPrefix(mangledNameStream, "add", m->getDataLayout());*/
+							//errs() << " edge[style=solid];\n";
+							//errs() << "\"" << current_function << "\"" << " -> " << "\"" << calling_function << "\"" << ";\n";
+						} 
+						else if(isa<BranchInst>(I))
+						{
+							//errs() << "Branch is: " << *I << "\n";
+							BranchInst* branch = cast<BranchInst>(I);
+
+							for (unsigned II = 0, NSucc = branch->getNumSuccessors(); II < NSucc; ++II) 
+							{
+								BasicBlock *Succ = branch->getSuccessor(II);
+								//errs() << *Succ << "\n";
+								//errs() << "First instruction:\n";
+								//errs() << *(Succ->begin()) << "\n";
+								//errs() << " edge[style=solid];\n";
+								//errs() << "\"" << *branch << "\"" << " -> " << "\"" <<  *(Succ->begin()) << "\"" << ";\n";
+							}
+						}
+						else if(isa<AllocaInst>(I))
+						{
+							AllocaInst* AI = cast<AllocaInst>(I);
+							//errs() << (AI->getName() )<< "\n";
+						}
+						else if(isa<StoreInst>(I))
+						{
+							StoreInst* SI = cast<StoreInst>(I);
+							errs() << "StoreInst: " << *SI << "\n";
+							//errs() << "\"" << *SI << "\"" << ";\n";
+							Value* storingValue = SI->getValueOperand();
+							errs() << (storingValue)->getName() << "\n";
+							errs() << (SI->getPointerOperand()->getName() )<< "\n";
+						}
+						else if(isa<LoadInst>(I))
+						{
+							LoadInst* LI = cast<LoadInst>(I);
+							Value* LI_type = (LI->getPointerOperand() );
+							if(!(isa<AllocaInst>(LI_type)))
+							{
+								//errs() << " edge[style=dashed];\n";
+								//errs() << "\"" << *LI_type << "\"" << " -> " << "\"" <<  *LI << "\"" << ";\n";
+							}
+						}
+						else if(isa<BinaryOperator>(I))
+						{
+							//errs() << "This is a binary instruction\n";
+							//errs() << *I << "\n";
+							//errs() << "Its operands:\n";
+							//errs() << *(I->getOperand(0)) << "\n";
+							//errs() << *(I->getOperand(1)) << "\n";
+							//errs() << " edge[style=dashed];\n";
+							//errs() << "\"" << *(I->getOperand(0)) << "\"" << " -> " << "\"" <<  *I << "\"" << ";\n";
+							//errs() << " edge[style=dashed];\n";
+							//errs() << "\"" << *(I->getOperand(1)) << "\"" << " -> " << "\"" <<  *I << "\"" << ";\n";
+						}
+					}
+				}
+			}
+
+			errs() << "\n}\n";
+		    return false;
+		}
+
+	};
+}
+
+
+char ProgramDependanceGraph::ID = 0;
+static RegisterPass<ProgramDependanceGraph> X("ProgramDependanceGraph", "ProgramDependanceGraph Pass");
+
+
+
+// store expression could have a simple integer at its rhs, or an expression or a function call...

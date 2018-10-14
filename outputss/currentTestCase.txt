@@ -1,0 +1,1 @@
+_Z5test3RSt14basic_ofstreamIcSt11char_traitsIcEE

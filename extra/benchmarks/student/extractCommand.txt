@@ -1,0 +1,1 @@
+llvm-extract -o answerStudent.bc  -func _Z3mehf  student.bc && llvm-dis answerStudent.bc
